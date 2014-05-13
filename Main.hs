@@ -5,6 +5,7 @@ import System.Posix.Daemonize
 import System.Exit
 import System.IO
 import Control.Monad
+import Control.Concurrent (threadDelay)
 
 data Flag
 	= Daemon
@@ -45,12 +46,25 @@ parseOpts me argv = case getOpt Permute options argv of
 		exitWith (ExitFailure 1)
 	where header = "Usage: " ++ me ++ " [-hd][-L <logfile>][-N <dbg_lvl>][-f <config_file>]"
 
+main :: IO ()
 main = do
 	me <- getProgName
 	args <- getArgs
 	opts <- parseOpts me args
 
 	if Daemon `elem` opts then do
-		daemonize (forever $ return())
+		serviced hacuService
+		--daemonize nfsStart
+	else
+		nfsStart2
 
-	exitWith ExitSuccess
+hacuService :: CreateDaemon ()
+hacuService = simpleDaemon { program = nfsStart }
+
+nfsStart :: a -> IO ()
+nfsStart param = do
+	threadDelay $ 1000000 * 1000
+
+nfsStart2 :: IO ()
+nfsStart2 = do
+	threadDelay $ 1000000 * 1000
