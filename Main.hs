@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 module Main (main) where
 import System.Environment (getArgs, getProgName)
 import System.Console.GetOpt
@@ -6,6 +7,10 @@ import System.Exit
 import System.IO
 import Control.Monad
 import Control.Concurrent (threadDelay)
+import Data2.Configurator
+import Data2.Configurator.Types
+import Data.Text (Text)
+--import FSAL
 
 data Flag
 	= Daemon
@@ -32,6 +37,20 @@ options = [
 	Option ['N'] ["debug"]	(ReqArg Debug "dbg_lvl")	"set the verbosity level"
 	]
 
+handleOpt :: Flag -> IO ()
+handleOpt (Config p) = do
+	putStrLn "CONFIG..."
+	cfg <- load [Required p]
+	res <- Data2.Configurator.lookup cfg "EXPORT.Path"
+	case res of
+		Just v -> putStrLn v
+		Nothing -> putStrLn "NOTHING"
+
+	res <- Data2.Configurator.lookup cfg "EXPORT.Root_Access"
+	case res of
+		Just v -> putStrLn v
+		Nothing -> putStrLn "NOTHING"
+
 -- parseOpts :: [String] -> IO ([Flag], [String])
 parseOpts :: String -> [String] -> IO ([Flag])
 parseOpts me argv = case getOpt Permute options argv of
@@ -41,6 +60,7 @@ parseOpts me argv = case getOpt Permute options argv of
 			exitWith ExitSuccess
 		else
 			return (opts)
+
 	(_, _, errs) -> do
 		hPutStrLn stderr (concat errs ++ usageInfo header options)
 		exitWith (ExitFailure 1)
@@ -51,6 +71,7 @@ main = do
 	me <- getProgName
 	args <- getArgs
 	opts <- parseOpts me args
+	mapM_ handleOpt opts
 
 	if Daemon `elem` opts then do
 		serviced hacuService
@@ -59,7 +80,11 @@ main = do
 		nfsStart2
 
 hacuService :: CreateDaemon ()
-hacuService = simpleDaemon { program = nfsStart }
+hacuService = simpleDaemon { program = mainLoop }
+
+mainLoop :: a -> IO ()
+mainLoop param = do
+	nfsStart param
 
 nfsStart :: a -> IO ()
 nfsStart param = do
