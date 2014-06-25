@@ -10,6 +10,7 @@ import Control.Concurrent (threadDelay)
 import Data2.Configurator
 import Data2.Configurator.Types
 import Data.Text (Text)
+import Svc
 --import FSAL
 
 data Flag
@@ -77,7 +78,7 @@ main = do
 		serviced hacuService
 		--daemonize nfsStart
 	else
-		nfsStart2
+		nfsStart2 opts
 
 hacuService :: CreateDaemon ()
 hacuService = simpleDaemon { program = mainLoop }
@@ -85,11 +86,18 @@ hacuService = simpleDaemon { program = mainLoop }
 mainLoop :: a -> IO ()
 mainLoop param = do
 	nfsStart param
+	{-
+	conn <- accept sock
+	runConn conn
+	mainLoop param
+	-}
 
 nfsStart :: a -> IO ()
 nfsStart param = do
+	initSvc param
 	threadDelay $ 1000000 * 1000
 
-nfsStart2 :: IO ()
-nfsStart2 = do
+nfsStart2 :: a -> IO ()
+nfsStart2 param = do
+	initSvc param
 	threadDelay $ 1000000 * 1000
